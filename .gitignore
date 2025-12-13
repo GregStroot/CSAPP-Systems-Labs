@@ -1,0 +1,12 @@
+# Ignore binaries and object files
+*.o
+*.tar
+main
+test
+bomb
+explicit
+implicit
+
+# Ignore editor settings
+.vscode/
+.DS_Store
