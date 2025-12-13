@@ -3,6 +3,7 @@
 **Goal:** Mastering low-level memory management, CPU architecture, and code optimization.
 **Reference Text:** *Computer Systems: A Programmer's Perspective (3rd Ed)* by Bryant & O'Hallaron.
 **Curriculum Basis:** Adapted from [CMU 15-213 (Spring 2023)](https://www.cs.cmu.edu/afs/cs/academic/class/15213-s23/www/schedule.html).
+**Reference Lectures:** Lectures from [CMU 15-213 (Fall 2015)](https://scs.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID=%22b96d90ae-9871-4fae-91e2-b1627b43e25e%22)
 
 This repository contains my solutions to the core "Systems" laboratories, focusing specifically on **hardware sympathy** and **latency optimization** relevant to High-Performance Computing (HPC) and Quantitative Finance.
 
