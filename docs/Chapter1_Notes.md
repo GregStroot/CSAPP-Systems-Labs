@@ -55,4 +55,62 @@ Examples of some simple operations the CPU may carry out are:
 
 * We can distinguish the processor’s instruction set architecture, describing the effect of each machine-code instruction, from its *microarchitecture*, describing how the processor is actually implemented.
 
-__Section 1.5 Stop__
+# Section 1.5
+* Because of physical laws, larger storage devices are slower than smaller storage devices.
+
+* L1 Cache O(1e4 bytes) -- Nearly same speed as register
+* L2 Cache O(1e6 bytes) -- 5 times longer than L1 (still 5-10x faster than main)
+* Most modern systems have L3 cache (which is often the unified cache for all cores)
+
+* **Through software design our goal is to perform most memory operations using the fast cache**
+
+# Section 1.6
+
+* The main idea of *memory heirarchy* is that storage at one level serves as a cache for storage at the next lower level
+
+# Section 1.7
+
+* The main purpose of the OS is:
+    1. Protect hardware from misuse by runaway apps.
+    2. Provide applications with simple and uniform mechanisms for manipulating complicated and, often, wildly different low-level hardware devices
+
+
+## 1.7.1
+
+* The OS manages concurrently running programs through *context switching* and this is managed by the *kernel*
+
+## 1.7.3
+
+* *Virtual memory* is an abstraction that provides each process with the illusion that it has exclusive use of the main memory.
+* Each process has the same uniform view of memory, which is known as its virtual address space
+    * In Linux, the **topmost region** of the address space is reserved for code and data in the operating system that is common to all processes.
+    * The **lower region** of the address space holds the code and data defined by the user’s process.
+* The *virtual address space* is broken up into multiple well-defined areas
+    1. Program code and data
+    2. Heap
+        * Dynamically expands and contracts during execution of a program
+    3. Shared Libraries
+    4. Stack
+        * Compiler uses this to implement function calls (Ch 3)
+        * Dynamically expands and contracts during execution of a program
+    5. Kernel virtual memory
+
+
+# 1.9.2
+
+## Thread-level concurrency
+
+*
+
+## Instruction-Level Parallelism
+
+* For example, early microprocessors, such as the 1978-vintage Intel 8086, required multiple (typically 3–10) clock cycles to execute a single instruction.
+* More recent processors can sustain execution rates of 2–4 instructions per clock cycle.
+* Any given instruction requires much longer from start to finish, perhaps 20 cycles or more, but the processor uses a number of clever tricks to process as many as 100 instructions at a time.
+    * This 'concurrency' is enabled through the use of **pipelining**, where the actions required to execute an instruction are partitioned into different steps and the processor hardware is organized as a series of stages, each performing one of these steps.
+        * The stages can operate in parallel, working on different parts of different instructions.
+
+## Single Instruction, Multiple-Data (SIMD) Parallelism
+
+* At the lowest level, many modern processors have special hardware that allows a single instruction to cause multiple operations to be performed in parallel, a mode known as single-instruction, multiple-data (SIMD) parallelism.
+    * For example, recent generations of Intel and AMD processors have instructions that can add 8 pairs of single-precision floating-point numbers (C data type float) in parallel.
