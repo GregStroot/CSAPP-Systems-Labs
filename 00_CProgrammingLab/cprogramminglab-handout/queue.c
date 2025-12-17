@@ -41,10 +41,19 @@ queue_t *queue_new(void) {
  * @param[in] q The queue to free
  */
 void queue_free(queue_t *q) {
-    /* How about freeing the list elements and the strings? */
-    /* Free queue structure */
+    if (q==NULL) {
+        return;
+    }
+    if (q->size != 0) {
+        list_ele_t *currEle = q->head;
+        while (currEle != NULL) {
+            list_ele_t* temp = currEle->next;
+            free(currEle->value);
+            free(currEle);
+            currEle = temp;
+        }
+    }
     free(q);
-    //TODO: Don't we need to do this iteratively?
 }
 
 /**
@@ -168,6 +177,7 @@ bool queue_remove_head(queue_t *q, char *buf, size_t bufsize) {
         return false;
     }
 
+
     list_ele_t *tempEle;
     tempEle = q->head;
     if (q->size == 1) {
@@ -180,7 +190,10 @@ bool queue_remove_head(queue_t *q, char *buf, size_t bufsize) {
     q->size--;
 
     //Copy element
-    strncpy(buf, tempEle->value, bufsize-1);
+    if (buf != NULL) {
+        strncpy(buf, tempEle->value, bufsize-1);
+        buf[bufsize-1] = '\0';
+    }
 
     free(tempEle->value);
     free(tempEle);
@@ -222,28 +235,20 @@ void queue_reverse(queue_t *q) {
         return;
     }
 
-    queue_t *reversed = queue_new();
-    //Assign firest element
-    reversed->tail = q->head;
-    reversed->size++;
-    list_ele_t *reversedNext;
-    reversedNext = NULL;
-
     list_ele_t *nextEle;
     nextEle = q->head;
+    q->tail = nextEle;
+    list_ele_t *currNode = NULL;
+
     while (nextEle->next != NULL) {
         list_ele_t *temp;
         temp = nextEle;
-        //Store new pointer
         nextEle = nextEle->next;
-        //Store next ele
-        temp->next = reversedNext;
-        reversedNext = temp;
+        temp->next = currNode;
+        currNode = temp;
     }
-    reversed->head = reversedNext;
-
-    //Release the q struct
-    queue_free(q);
+    q->head = nextEle;
+    q->head->next = currNode;
 
     return;
 }
