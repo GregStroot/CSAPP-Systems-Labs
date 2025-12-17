@@ -13,7 +13,7 @@ This repository contains my solutions to the core "Systems" laboratories, focusi
 *Focus: Bit-level manipulation, Two's Complement, IEEE 754 Floating Point.*
 
 - [ ] **Readings:**
-    - [ ] CSAPP Ch 1         (A Tour of Computer Systems)
+    - [x] CSAPP Ch 1         (A Tour of Computer Systems)
     - [ ] CSAPP Ch 2.1       (Information Storage)
     - [ ] CSAPP Ch 2.2 - 2.3 (Integer Representation & Arithmetic)
     - [ ] CSAPP Ch 2.4       (Floating Point: IEEE 754, Rounding)
