@@ -17,8 +17,8 @@ This repository contains my solutions to the core "Systems" laboratories, focusi
     - [ ] CSAPP Ch 2.1       (Information Storage)
     - [ ] CSAPP Ch 2.2 - 2.3 (Integer Representation & Arithmetic)
     - [ ] CSAPP Ch 2.4       (Floating Point: IEEE 754, Rounding)
-- [ ] **Lab: C Programming Lab**
-    - [ ] Queue implementation (Pointers & Structs)
+- [x] **Lab: C Programming Lab**
+    - [x] Queue implementation (Pointers & Structs)
 - [ ] **Lab: Data Lab**
     - [ ] Integer Puzzles (Bitwise operators only: `&`, `|`, `~`, `^`, `<<`, `>>`)
     - [ ] Floating Point Puzzles (Bit-level float manipulation)
