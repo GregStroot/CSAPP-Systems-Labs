@@ -6,8 +6,8 @@
  * Developed for courses 15-213/18-213/15-513 by R. E. Bryant, 2017
  * Extended to store strings, 2018
  *
- * TODO: fill in your name and Andrew ID
- * @author XXX <XXX@andrew.cmu.edu>
+ *
+ * @author gstroot
  */
 
 #include <stdbool.h>
@@ -44,6 +44,8 @@ typedef struct {
      *        queue is empty.
      */
     list_ele_t *head;
+    list_ele_t *tail;
+    size_t size;
     /*
      * TODO: You will need to add more fields to this structure
      *       to efficiently implement q_size and q_insert_tail
@@ -72,3 +74,4 @@ size_t queue_size(queue_t *q);
 
 /* Reverse elements in queue */
 void queue_reverse(queue_t *q);
+

@@ -9,8 +9,8 @@
  * Developed for courses 15-213/18-213/15-513 by R. E. Bryant, 2017
  * Extended to store strings, 2018
  *
- * TODO: fill in your name and Andrew ID
- * @author XXX <XXX@andrew.cmu.edu>
+ *
+ * @author gstroot
  */
 
 #include "queue.h"
@@ -26,7 +26,13 @@
 queue_t *queue_new(void) {
     queue_t *q = malloc(sizeof(queue_t));
     /* What if malloc returned NULL? */
+    if (q == NULL) {
+        return NULL;
+    }
+
     q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
     return q;
 }
 
@@ -38,6 +44,7 @@ void queue_free(queue_t *q) {
     /* How about freeing the list elements and the strings? */
     /* Free queue structure */
     free(q);
+    //TODO: Don't we need to do this iteratively?
 }
 
 /**
@@ -53,13 +60,37 @@ void queue_free(queue_t *q) {
  * @return false if q is NULL, or memory allocation failed
  */
 bool queue_insert_head(queue_t *q, const char *s) {
+    if (q == NULL) {
+        return false;
+    }
     list_ele_t *newh;
-    /* What should you do if the q is NULL? */
     newh = malloc(sizeof(list_ele_t));
-    /* Don't forget to allocate space for the string and copy it */
-    /* What if either call to malloc returns NULL? */
+    if (newh == NULL) {
+        return false;
+    }
+
+    char *str_new;
+    size_t size = strlen(s);
+    str_new = malloc(sizeof(char)*(size+1));
+
+    if (str_new == NULL) {
+        //Release newh if only str_new wasn't allocated properly
+        free(newh);
+        return false;
+    }
+
+    //Construct new element
+    strcpy(str_new, s);
+    newh->value = str_new;
     newh->next = q->head;
+
+    //Assign to head;
     q->head = newh;
+    if (q->size == 0) {
+        q->tail = newh;
+    }
+    q->size++;
+
     return true;
 }
 
@@ -78,7 +109,41 @@ bool queue_insert_head(queue_t *q, const char *s) {
 bool queue_insert_tail(queue_t *q, const char *s) {
     /* You need to write the complete code for this function */
     /* Remember: It should operate in O(1) time */
-    return false;
+    if (q == NULL) {
+        return false;
+    }
+    list_ele_t *newh;
+    newh = malloc(sizeof(list_ele_t));
+    if (newh == NULL) {
+        return false;
+    }
+
+    char *str_new;
+    size_t size = strlen(s);
+    str_new = malloc(sizeof(char)*(size+1));
+
+    if (str_new == NULL) {
+        //Release newh if only str_new wasn't allocated properly
+        free(newh);
+        return false;
+    }
+
+    //Construct new element
+    strcpy(str_new, s);
+    newh->value = str_new;
+    newh->next = NULL;
+
+    //Assign to tail;
+    if (q->size != 0) {
+        q->tail->next = newh;
+    }
+    q->tail = newh;
+    if (q->size == 0) {
+        q->head = newh;
+    }
+    q->size++;
+
+    return true;
 }
 
 /**
@@ -99,8 +164,27 @@ bool queue_insert_tail(queue_t *q, const char *s) {
  * @return false if q is NULL or empty
  */
 bool queue_remove_head(queue_t *q, char *buf, size_t bufsize) {
-    /* You need to fix up this code. */
-    q->head = q->head->next;
+    if (q == NULL || q->size == 0) {
+        return false;
+    }
+
+    list_ele_t *tempEle;
+    tempEle = q->head;
+    if (q->size == 1) {
+        q->head = NULL;
+        q->tail = NULL;
+    }
+    else {
+        q->head = q->head->next;
+    }
+    q->size--;
+
+    //Copy element
+    strncpy(buf, tempEle->value, bufsize-1);
+
+    free(tempEle->value);
+    free(tempEle);
+
     return true;
 }
 
@@ -115,9 +199,13 @@ bool queue_remove_head(queue_t *q, char *buf, size_t bufsize) {
  *         0 if q is NULL or empty
  */
 size_t queue_size(queue_t *q) {
-    /* You need to write the code for this function */
-    /* Remember: It should operate in O(1) time */
-    return 0;
+
+    if (q== NULL || q->size == 0) {
+        return 0;
+    }
+    else {
+        return q->size;
+    }
 }
 
 /**
@@ -130,5 +218,33 @@ size_t queue_size(queue_t *q) {
  * @param[in] q The queue to reverse
  */
 void queue_reverse(queue_t *q) {
-    /* You need to write the code for this function */
+    if (q== NULL || q->size == 0) {
+        return;
+    }
+
+    queue_t *reversed = queue_new();
+    //Assign firest element
+    reversed->tail = q->head;
+    reversed->size++;
+    list_ele_t *reversedNext;
+    reversedNext = NULL;
+
+    list_ele_t *nextEle;
+    nextEle = q->head;
+    while (nextEle->next != NULL) {
+        list_ele_t *temp;
+        temp = nextEle;
+        //Store new pointer
+        nextEle = nextEle->next;
+        //Store next ele
+        temp->next = reversedNext;
+        reversedNext = temp;
+    }
+    reversed->head = reversedNext;
+
+    //Release the q struct
+    queue_free(q);
+
+    return;
 }
+
