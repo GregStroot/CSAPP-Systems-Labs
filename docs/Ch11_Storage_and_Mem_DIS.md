@@ -117,10 +117,12 @@ mov [rdx], rax       ; 3. Store: Write the result back to memory at address rdx
 #### Writing to Cached Data
 
 * Caches allow two ways to store operations
-    1. **Write-through cache**, keeping the memory adn cache always synchronized
+    1. **Write-through cache**, keeping the memory and cache always synchronized
     2. **Write-back cache**, Modifies the value stored in the data block, but does *not* update main memory
         * To manage this, each cache line contains a 'dirty bit', which allows synchronization
 
+* In general, caches further down the hierarchy are more likely to use write-back than write-through
+    * Due to higher transfer times as we move down the hierarchy
 
 ### 11.4.2 Cache Misses and Associative Designs
 

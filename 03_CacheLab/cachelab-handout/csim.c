@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 
         setIdx = (address >> b) & ( S-1 );
         tag = (address >> (b+s));
-        printf("%c %lx -> Set Index: %lu, Tag: %lu\n", operation, address, setIdx, tag);
+        //printf("%c %lx -> Set Index: %lu, Tag: %lu\n", operation, address, setIdx, tag);
 
         if (verbose) {
             printf("%c %lx,%lu ", operation, address, setIdx);
