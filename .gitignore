@@ -10,3 +10,17 @@ implicit
 # Ignore editor settings
 .vscode/
 .DS_Store
+
+# Binaries
+csim
+test-trans
+tracegen
+
+# Hidden Lab Results
+.csim_results
+.marker
+
+# Traces
+trace.f*
+trace.tmp
+trace.all
