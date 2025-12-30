@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "cachelab.h"
 
+void subblock_routine(int i, int j, int M, int N, int A[N][M], int B[M][N]);
 int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 
 /*
@@ -114,39 +115,97 @@ void transpose_unblocked_wa(int M, int N, int A[N][M], int B[M][N])
 
 }
 
-void subblock_routine(int* i, int* j, int* M, int* N, int* A[N][M] ,int* B[M][N]) {
+char transpose_subroutine_desc[] = "Transpose unblocked 8x8 sub-block routine";
+void transpose_subroutine(int M, int N, int A[N][M], int B[M][N])
+{
+    int i, j;
 
-    int v0, v1, v2, v3, v4, v5, v6, v7;
-    int ii;
 
-    /////
-    //Top left quadrant
-    /////
-    for (ii = 0; ii < 4; ii++ ){
-        v0 = A[*i*8 + ii][*j*8 + 0];
-        v1 = A[*i*8 + ii][*j*8 + 1];
-        v2 = A[*i*8 + ii][*j*8 + 2];
-        v3 = A[*i*8 + ii][*j*8 + 3];
-        v4 = A[*i*8 + ii][*j*8 + 4];
-        v5 = A[*i*8 + ii][*j*8 + 5];
-        v6 = A[*i*8 + ii][*j*8 + 6];
-        v7 = A[*i*8 + ii][*j*8 + 7];
+    //We are doing blocks of 4x4
+    int nSteps = N/8;
+    int mSteps = M/8;
 
-        //Transpose top left
-        B[*j*8 + 0][*i*8 + ii] = v0;
-        B[*j*8 + 1][*i*8 + ii] = v1;
-        B[*j*8 + 2][*i*8 + ii] = v2;
-        B[*j*8 + 3][*i*8 + ii] = v3;
 
-        //Store extra data
-        B[*j*8 + 0][*i*8 + ii + 4] = v4;
-        B[*j*8 + 1][*i*8 + ii + 4] = v5;
-        B[*j*8 + 2][*i*8 + ii + 4] = v6;
-        B[*j*8 + 3][*i*8 + ii + 4] = v7;
-
+    for (i = 0; i < nSteps; i++) {
+        for (j = 0; j < mSteps; j++) {
+            subblock_routine(i,j, M,N, A, B);
+        }
     }
 
-    // TODO
+}
+
+void subblock_routine(int i, int j, int M, int N, int A[N][M] ,int B[M][N]) {
+
+    int v0, v1, v2, v3, v4, v5, v6, v7;
+    int k;
+
+    //Flip Q1 and store extra data in Q2 (as a buffer)
+    for (k = 0; k < 4; k++ ){
+        v0 = A[i*8 + k][j*8 + 0];
+        v1 = A[i*8 + k][j*8 + 1];
+        v2 = A[i*8 + k][j*8 + 2];
+        v3 = A[i*8 + k][j*8 + 3];
+        v4 = A[i*8 + k][j*8 + 4];
+        v5 = A[i*8 + k][j*8 + 5];
+        v6 = A[i*8 + k][j*8 + 6];
+        v7 = A[i*8 + k][j*8 + 7];
+
+        //Transpose top left
+        B[j*8 + 0][i*8 + k] = v0;
+        B[j*8 + 1][i*8 + k] = v1;
+        B[j*8 + 2][i*8 + k] = v2;
+        B[j*8 + 3][i*8 + k] = v3;
+
+        //Store extra data
+        B[j*8 + 0][i*8 + k + 4] = v4;
+        B[j*8 + 1][i*8 + k + 4] = v5;
+        B[j*8 + 2][i*8 + k + 4] = v6;
+        B[j*8 + 3][i*8 + k + 4] = v7;
+    }
+
+    //Flip Q2 and Q3
+    //Average of 2 misses per loop
+    for (k = 0; k < 4; k++ ){
+        //Load row0 of Q2 into registers (single set!)
+        v0 = B[j*8 + k][i*8 + 4];
+        v1 = B[j*8 + k][i*8 + 5];
+        v2 = B[j*8 + k][i*8 + 6];
+        v3 = B[j*8 + k][i*8 + 7];
+
+        //Q3: Load the column of A (to replace data above in Q2)
+        //4 sets
+        v4 = A[i*8 + 4][j*8 + k];
+        v5 = A[i*8 + 5][j*8 + k];
+        v6 = A[i*8 + 6][j*8 + k];
+        v7 = A[i*8 + 7][j*8 + k];
+
+        //Write to Q2 (miss)
+        B[j*8 + k][i*8 + 4] = v4;
+        B[j*8 + k][i*8 + 5] = v5;
+        B[j*8 + k][i*8 + 6] = v6;
+        B[j*8 + k][i*8 + 7] = v7;
+
+        //Write to Q3 (miss)
+        B[j*8 + k + 4][i*8 + 0] = v0;
+        B[j*8 + k + 4][i*8 + 1] = v1;
+        B[j*8 + k + 4][i*8 + 2] = v2;
+        B[j*8 + k + 4][i*8 + 3] = v3;
+    }
+
+    //Q4
+    for (k = 4; k < 8; k++ ){
+        v4 = A[i*8 + k][j*8 + 4];
+        v5 = A[i*8 + k][j*8 + 5];
+        v6 = A[i*8 + k][j*8 + 6];
+        v7 = A[i*8 + k][j*8 + 7];
+
+        //Transpose top left
+        B[j*8 + 4][i*8 + k] = v4;
+        B[j*8 + 5][i*8 + k] = v5;
+        B[j*8 + 6][i*8 + k] = v6;
+        B[j*8 + 7][i*8 + k] = v7;
+    }
+
 
 }
 
@@ -189,6 +248,7 @@ void registerFunctions()
 
     registerTransFunction(transpose_unblocked, transpose_unblocked_desc);
     registerTransFunction(transpose_unblocked_wa, transpose_unblocked_wa_desc);
+    registerTransFunction(transpose_subroutine, transpose_subroutine_desc);
 
     /* Register any additional transpose functions */
     registerTransFunction(trans, trans_desc);
