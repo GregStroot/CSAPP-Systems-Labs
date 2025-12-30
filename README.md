@@ -44,14 +44,15 @@ This repository contains my solutions to the core "Systems" laboratories, focusi
 *Focus: Cache Locality, Blocking, and Loop Optimization.*
 
 - [ ] **Readings:**
-    - [ ] CSAPP Ch 6.1 - 6.3 (Storage Tech, Disk vs RAM, Locality)
-    - [ ] CSAPP Ch 6.4 - 6.7 (Cache Memories, Writing Cache-Friendly Code)
+    - [x] CSAPP Ch 6.1 - 6.3 (Storage Tech, Disk vs RAM, Locality)
+    - [x] CSAPP Ch 6.4 - 6.7 (Cache Memories, Writing Cache-Friendly Code)
     - [ ] CSAPP Ch 5.1 - 5.15 (Optimizing Program Performance: Unrolling, Pipelining)
-- [ ] **Lab: Cache Lab**
-    - [ ] Part A: Write a Cache Simulator (Handling Sets, Lines, Tags, LRU Eviction)
-    - [ ] Part B: Optimize Matrix Transpose (Minimizing Cache Misses via Blocking/Tiling)
+- [x] **Lab: Cache Lab**
+    - [x] Part A: Write a Cache Simulator (Handling Sets, Lines, Tags, LRU Eviction)
+    - [x] Part B: Optimize Matrix Transpose (Minimizing Cache Misses via Blocking/Tiling)
 - [ ] **Key Concepts Mastered:**
-    -   TODO
+    -  Thrashing, Tiling, Blocking
+    -  Direct-mapped and associative caches
 
 ### Phase 4: Dynamic Memory Management
 *Focus: The Heap, Allocators, Fragmentation, and Pointers.*
