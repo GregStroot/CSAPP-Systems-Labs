@@ -43,16 +43,18 @@ This repository contains my solutions to the core "Systems" laboratories, focusi
 ### Phase 3: The Memory Hierarchy (Critical)
 *Focus: Cache Locality, Blocking, and Loop Optimization.*
 
-- [ ] **Readings:**
+- [x] **Readings:**
     - [x] CSAPP Ch 6.1 - 6.3 (Storage Tech, Disk vs RAM, Locality)
     - [x] CSAPP Ch 6.4 - 6.7 (Cache Memories, Writing Cache-Friendly Code)
-    - [ ] CSAPP Ch 5.1 - 5.15 (Optimizing Program Performance: Unrolling, Pipelining)
+    - [x] CSAPP Ch 5.1 - 5.11 (Optimizing Program Performance: Unrolling, Pipelining)
 - [x] **Lab: Cache Lab**
     - [x] Part A: Write a Cache Simulator (Handling Sets, Lines, Tags, LRU Eviction)
     - [x] Part B: Optimize Matrix Transpose (Minimizing Cache Misses via Blocking/Tiling)
-- [ ] **Key Concepts Mastered:**
-    -  Thrashing, Tiling, Blocking
-    -  Direct-mapped and associative caches
+- [x] **Key Concepts Mastered:**
+    - Thrashing, Tiling, Blocking
+    - Direct-mapped and associative caches
+    - Performance blocking
+    - Loop Unrolling & types of parallelism
 
 ### Phase 4: Dynamic Memory Management
 *Focus: The Heap, Allocators, Fragmentation, and Pointers.*
@@ -72,12 +74,5 @@ This repository contains my solutions to the core "Systems" laboratories, focusi
 
 ---
 
-## 🛠️ Environment & Tools
-*   **Compiler:** GCC / Clang (Linux Environment)
-*   **Debugger:** GDB
-*   **Profiling:** Valgrind, Perf
-*   **Build System:** Make
-
 ## 📝 Notes on Optimization (Self-Reference)
-*(This section to document specific "Aha!" moments useful for interviews)*
 *   *Example: *

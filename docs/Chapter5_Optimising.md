@@ -311,14 +311,245 @@ void combine4(vec_ptr v, data_t *dest) {
 
 
 ## 5.8 Loop Unrolling
+
+* Loop unrolling can improve the performance in two ways:
+    1. Reducing the number of ops that do not contribute to the result (e.g. loop indexeing and conditional branching)
+    2. It exposes ways that we can transform the code to reduce the number of ops in the critical path
+
+* (k x 1) loop unrolling is when you perform an increment of `k` for your loop idx and perform `k` ops at a time
+    - This allows us to get down to the latency bound of 1 for Int + !
+        * Because we got rid of the number of overhead ops (first way loop unrolling speeds up)
+
+| Function             | Method       | **Int +** | **Int *** | **FP +** | **FP *** |
+| ---                  | ---          | ---       | ---       | ---      | ---      |
+| **combine4**         | No unrolling | 1.27      | 3.01      | 3.01     | 5.01     |
+| **combine5**         | unrolling    | 1.01      | 3.01      | 3.01     | 5.01     |
+|                      | unrolling    | 1.01      | 3.01      | 3.01     | 5.01     |
+| **Latency Bound**    |              | 1.00      | 3.00      | 3.00     | 5.00     |
+| **Throughput Bound** |              | 0.50      | 1.00      | 1.00     | 0.50     |
+
+* This cannot get us past the latency bound, which we can understand by looking at the assembly:
+
+```gas
+.L35:                               # loop:
+    vmulsd (%rax,%rdx,8), %xmm0, %xmm0     # 1. Multiply acc by data[i]
+    vmulsd 8(%rax,%rdx,8), %xmm0, %xmm0   # 2. Multiply acc by data[i+1]
+    addq   $2, %rdx                        # 3. Increment index i by 2
+    cmpq   %rdx, %rbp                      # 4. Compare i to limit
+    jg     .L35                            # 5. If limit > i, goto loop
+
+```
+
+* `vmulsd` gets translated into top ops: one to load an array element and one to multiply.
+* Regardless, the critical path still involves n mul operations in sequence, so (k x 1) unrolling cannot fix that
+
 ## 5.9 Enhancing Parallelism
+
+* Our function has hit the limits imposed by the latencies of the ALU, but we can start a new operations every clock cycle (due to being pipelined) and run multiple computations at once
+* Currently our code cannot take advantage of this, since we are using a single variable accumulator
+
 ### 5.9.1 Multiple Accumulators
+
+* For a combining operation that is associative and commutative, we can improve performance by splitting the set of combining ops into two or more sets
+
+* This may be combined with our previous form of loop unrolling to net us '2 x 2 loop unrolling':
+```c
+/* 2 x 2 loop unrolling */
+void combine6(vec_ptr v, data_t *dest)
+{
+    long i;
+    long length = vec_length(v);
+    long limit = length - 1;
+    data_t *data = get_vec_start(v);
+    data_t acc0 = IDENT;
+    data_t acc1 = IDENT;
+
+    /* Combine 2 elements at a time using two independent accumulators */
+    for (i = 0; i < limit; i += 2) {
+        acc0 = acc0 OP data[i];
+        acc1 = acc1 OP data[i+1];
+    }
+
+    /* Finish any remaining elements */
+    for (; i < length; i++) {
+        acc0 = acc0 OP data[i];
+    }
+
+    *dest = acc0 OP acc1;
+}
+
+```
+
+* This modification pushes us closer to the throughput bound:
+| Function             | Method                  | **Int +** | **Int *** | **FP +** | **FP *** |
+| ---                  | ---                     | ---       | ---       | ---      | ---      |
+| **combine4**         | Accumulate in temporary | 1.27      | 3.01      | 3.01     | 5.01     |
+| **combine5**         | unrolling               | 1.01      | 3.01      | 3.01     | 5.01     |
+| **combine6**         | unrolling               | 0.81      | 1.51      | 1.51     | 2.51     |
+| **Latency Bound**    |                         | 1.00      | 3.00      | 3.00     | 5.00     |
+| **Throughput Bound** |                         | 0.50      | 1.00      | 1.00     | 0.50     |
+
+* As expected we see a speed up of around 2x, except for int addition, which still has too much loop overhead
+    - With a k=7 and k x k we are able to reach a CPE of 0.54 for Integer addition
+    - Floating point mult. reaches 0.51 at k=10!
+
+* In general, a program can achieve the throughput bound for an op only when it can keep the pipeliens filled for all of the functional units capable of performing that op.
+    - For an operation with latency *L* and capacity *C*, thie requires an unrolling factor of:
+        ` k >= C \dot L`
+        * e.g. Floating point mult. has C= 2 and L = 5, thus necessitating k=10
+
+* We must consider if this transformation preserves the functionality
+    - For integer data type, the result from `combine4` to `combine6` will be identical and some compilers will do this
+    - On the other hand, floating-point multi and addition (on a computer) are **not associated**
+        * Most compilers do not attempt such a transformation due to this, but for general systems the gain of 2x outweighs the risk of generating different results for strange data patterns
+
+
 ### 5.9.2 Reassociation Transformation
+
+* We now explore another way to break the sequential dependencies
+
+* By simply reorganizing how the combine operation is done (just the grouping), we can achieve large speed-ups
+    * This is known as **'2 x 1a' unrolling**
+
+```c
+/* 2 x 1a loop unrolling: Reassociation */
+void combine7(vec_ptr v, data_t *dest)
+{
+    long i;
+    long length = vec_length(v);
+    long limit = length - 1;
+    data_t *data = get_vec_start(v);
+    data_t acc = IDENT;
+
+    /* Combine 2 elements at a time with reassociation */
+    for (i = 0; i < limit; i += 2) {
+        /* Note the parentheses: (data[i] OP data[i+1]) is computed FIRST */
+        acc = acc OP (data[i] OP data[i+1]);
+    }
+
+    /* Finish any remaining elements */
+    for (; i < length; i++) {
+        acc = acc OP data[i];
+    }
+
+    *dest = acc;
+}
+
+```
+
+
+| Function             | Method                  | **Int +** | **Int *** | **FP +** | **FP *** |
+| ---                  | ---                     | ---       | ---       | ---      | ---      |
+| **combine4**         | Accumulate in temporary | 1.27      | 3.01      | 3.01     | 5.01     |
+| **combine5**         | unrolling               | 1.01      | 3.01      | 3.01     | 5.01     |
+| **combine6**         | unrolling               | 0.81      | 1.51      | 1.51     | 2.51     |
+| **combine7**         | unrolling               | 1.01      | 1.51      | 1.51     | 2.51     |
+| **Latency Bound**    |                         | 1.00      | 3.00      | 3.00     | 5.00     |
+| **Throughput Bound** |                         | 0.50      | 1.00      | 1.00     | 0.50     |
+
+* We can see that '2 x 1a' achieves the same speed up as '2 x 2' unrolling for everything except the integer addition case
+    - It does this by reducing the length of the critical path. In the '2x1a' route, the CPU can 'pre-compute' the data[i] OP data[i+1] while the previous OP is still being performed on acc. Effectively giving the same speed-up as the 2x2
+
+* Yet again, this technique will not change the results for integer add and multiplication and is often performed for those cases by the compiler
+    - BUT, it is not performed for FP's and we (the programmer) must perform that transformation
+
+* Reassociation actually adds another operation versus 'kxk' loop unrolling and this chokes out Int Add, where it takes 1 extra instruction, but saves 5 in the crit. path for FP mult
+
+* ASIDE: There is an extension to SSE (streaming SIMD [single instruction, multiple data] extensions) with most recent versions called **advanced vector extensions** (**AVX**)
+    - SIMD involves operating on entire vectors of data with a single instruction!
+    - Current AVX registers are 32 bytes long and can allow performing vector ops on 8 (32 bit) values in parallel!
+    - This allows us to hit a vector throughput bound of 0.06 for Integer addition or 0.06 for FP mult!
+
 ## 5.10 Summary of Results for Optimizing Combining Code
+
+* The following summarizes the result of this chapter  with *scalar* code (not using AVX vector instructions)
+
+| Function             | Method       | **Int +** | **Int *** | **FP +** | **FP *** |
+| ---                  | ---          | ---       | ---       | ---      | ---      |
+| **combine1**         | Abstract -O1 | 10.12     | 10.12     | 10.17    | 11.14    |
+| **combine6**         | unrolling    | 0.81      | 1.51      | 1.51     | 2.51     |
+|                      | unrolling    | 0.55      | 1.00      | 1.01     | 0.52     |
+| **Latency Bound**    |              | 1.00      | 3.00      | 3.00     | 5.00     |
+| **Throughput Bound** |              | 0.50      | 1.00      | 1.00     | 0.50     |
+
+    - Through the use of optimisation we have pushed code to the absolute limits imposed by our functional units performing the operations!
+    - Using SIMD instructions, this value can gain an additional 4x or 8x
+        * Providing an overall gain of 180x over `-O1`
+
 ## 5.11 Some Limiting Factors
 
+* The critical path in a data-flow graph representation indicates a *fundamental lower bound* on the time required to execute a program
+* We have also seen that the throughput bound of the functional units also impose a lower bound on the execute time
+    - If a program has *N* computations with a processor with *C* functional units and an issue time of *I*
+        * Then the program requires `N*I/C` cycles to execute
+
+* Now we consider other limiting factors
+
+### 5.11.1 Register Spilling
+
+* When the program exceeds the number of available registers (by have a high degree of parallelism), the compiler resorts to **spilling**, storing some of the temporary values in memory (typically the run-time stack)
+    - We can look at this with loop unrolling:
+
+| Function             | Method    | **Int +** | **Int *** | **FP +** | **FP *** |
+| ---                  | ---       | ---       | ---       | ---      | ---      |
+| **combine6**         | unrolling | 0.55      | 1.00      | 1.01     | 0.52     |
+|                      | unrolling | 0.83      | 1.03      | 1.02     | 0.68     |
+| **Throughput Bound** |           | 0.50      | 1.00      | 1.00     | 0.50     |
+
+* We see that the CPEs either don't improve of get worse as we go to `k=20`
+    - Modern processors have 16 int/floating point registers
+
+* Thus the compiler spills and for the `k=20` case we must load and store after certain operations!
+```
+vmovsd 40(%rsp), %xmm0
+vmulsd (%rdx), %xmm0, %xmm0
+vmovsd %xmm0, 40(%rsp)
+```
+
+* **Fortunately**, x86-64 has enough registers that most loops will become throughput limited *before* this occurs
 
 
+### 5.11.2 Branch Prediction and Misprediction Penalties
+
+* Modern processors *work well ahead* of the currently executing instructions, reading new instructions from memory and decoding them to determine what operations to perform on what operands.
+
+* In general, the prediction of the processors are *very* good and there is minimal overhead for checks that are regular (e.g. checking if we're in the array bounds -- we aren't until the last element)
+    * For tests that are completely unpredictable, the branch prediction logic will do *very poorly*
+
+* For **unpredictable cases**, performance can be greatly enhanced if the compiler is able to generate code using __conditional data transfers__ instead of conditional control transfers
+    * This cannot be directly controlled, but some ways of expressing conditional behavior can be more directly translated to conditional moves than others
+    * We have found the `gcc` is able to generate conditional moves for code written in a more 'functional' style, as opposed to a more 'imperative style'
+        - There are no strict rules for these two style, so we illustrate with an example
+
+* Imperative style (2.5-3.5CPE for predictable data and 13.5CPE for random data)
+```c
+/* Rearrange two vectors so that for each i, b[i] >= a[i] */
+void minmax1(long a[], long b[], long n) {
+    long i;
+    for (i = 0; i < n; i++) {
+        if (a[i] > b[i]) {
+            long t = a[i];
+            a[i] = b[i];
+            b[i] = t;
+        }
+    }
+}
+
+```
+* Functional style (4.0 CPE regardless of data type):
+```c
+/* Rearrange two vectors so that for each i, b[i] >= a[i] */
+void minmax2(long a[], long b[], long n) {
+    long i;
+    for (i = 0; i < n; i++) {
+        long min = a[i] < b[i] ? a[i] : b[i];
+        long max = a[i] < b[i] ? b[i] : a[i];
+        a[i] = min;
+        b[i] = max;
+    }
+}
+
+```
 
 
 --------------------------------
